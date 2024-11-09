@@ -1,8 +1,13 @@
 
-### WARN window.Window.Exec: No Partition Defined for Window operation! Moving all data to a single partitings
+"""
+WARN window.Window.Exec: No Partition Defined for Window operation! Moving all data to a single partitings
 
 1. Set Log Level to ERROR<br>
 You can reduce the log level from WARN to ERROR. This way, only errors are shown, and warnings are suppressed.
+"""
+
+spark.sparkContext.setLogLevel("ERROR")
+
 
 2. Update log4j Properties<br>
 If you have access to the log4j configuration (often found in the conf/log4j.properties file in your Spark setup), you can adjust the settings:
