@@ -35,7 +35,10 @@ Table of contents
 =================
 
 <!--ts-->
-   * [Accessing Data Sources](#accessing-data-sources)
+   * [Accessing Data Sources](#accessing-data-sources) 
+      (#load-a-dataframe-from-delta-table)
+      * 
+      (#load-a-dataframe-from-a-csv-file)
       * [Load a DataFrame from CSV](#load-a-dataframe-from-csv)
       * [Load a DataFrame from a Tab Separated Value (TSV) file](#load-a-dataframe-from-a-tab-separated-value-tsv-file)
       * [Save a DataFrame in CSV format](#save-a-dataframe-in-csv-format)
