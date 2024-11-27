@@ -26,6 +26,32 @@ A quick reference guide to the most commonly used patterns and functions in PySp
 
 If you can't find what you're looking for, check out the [PySpark Official Documentation](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.types.StructType.html) and add it here!
 
+## Crucial
+
+In PySpark, to access a specific column's value for each row in a DataFrame, you typically use **row objects**. This is usually done after collecting or converting the DataFrame into an RDD or a list of rows. Here's how you can access a column's value using the `row.column_name` syntax:
+
+### Steps to Access `row.column_name`
+1. **Collect the DataFrame as Rows:**
+   Use the `.collect()` method to bring the data from the Spark DataFrame to the driver as a list of Row objects.
+
+   ```python
+   rows = df.collect()  # Collects DataFrame rows as a list of Row objects
+   ```
+
+2. **Access Column Value by Name:**
+   You can then access the value of a specific column for a given row using the `row.column_name` syntax.
+
+   ```python
+   for row in rows:
+       print(row.column_name)  # Replace 'column_name' with the actual column name
+   ```
+3. **converting the row values in a list**
+    
+   ```
+    [row.column_name for row in df.select("column_name").collect()]
+   ```
+
+
 ## Quickstart
 
 Install on macOS:
