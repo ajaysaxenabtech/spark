@@ -8,6 +8,7 @@ A quick reference guide to the most commonly used patterns and functions in PySp
 - [Common Patterns](#common-patterns)
     - [Importing Functions & Types](#importing-functions--types)
     - [Filtering](#filtering)
+    - [Regex](#using-regex)
     - [Joins](#joins)
     - [Column Operations](#column-operations)
     - [Casting & Coalescing Null Values & Duplicates](#casting--coalescing-null-values--duplicates)
@@ -156,6 +157,203 @@ df = df.filter(col('first_name').isin([3, 4, 7]))
 df = df.orderBy(df.age.asc()))
 df = df.orderBy(df.age.desc()))
 ```
+
+### Using Regex
+
+The `.rlike()` function in PySpark is a column method used to check if a string column matches a specified regular expression (regex). It returns a boolean column indicating whether each value satisfies the regex pattern.
+
+Here are various cases and examples where `.rlike()` can be applied:
+
+---
+
+1. **Simple Matching**
+   Check if a string contains a specific substring.
+   ```python
+   from pyspark.sql import SparkSession
+   from pyspark.sql.functions import col
+
+   spark = SparkSession.builder.appName("rlike_examples").getOrCreate()
+
+   data = [("apple",), ("banana",), ("cherry",), ("grape",)]
+   df = spark.createDataFrame(data, ["fruit"])
+
+   # Check if the column 'fruit' contains the letter 'a'
+   df.filter(col("fruit").rlike("a")).show()
+   ```
+   **Result**:
+   ```
+   +------+
+   | fruit|
+   +------+
+   | apple|
+   |banana|
+   | grape|
+   +------+
+   ```
+
+---
+
+2. **Pattern Matching Using Wildcards**
+   Use regex patterns like `^` (start), `$` (end), or `.*` (wildcard).
+   ```python
+   # Check if the string starts with 'b'
+   df.filter(col("fruit").rlike("^b")).show()
+
+   # Check if the string ends with 'e'
+   df.filter(col("fruit").rlike("e$")).show()
+   ```
+
+---
+
+3. **Match Multiple Patterns**
+   Match any of several patterns using the `|` operator.
+   ```python
+   # Match fruits that start with 'a' or 'b'
+   df.filter(col("fruit").rlike("^a|^b")).show()
+   ```
+   **Result**:
+   ```
+   +------+
+   | fruit|
+   +------+
+   | apple|
+   |banana|
+   +------+
+   ```
+
+---
+
+4. **Case-Insensitive Matching**
+   Use regex flags (e.g., `(?i)` for case-insensitive matching).
+   ```python
+   data = [("APPLE",), ("BaNaNa",), ("Cherry",), ("GRAPE",)]
+   df = spark.createDataFrame(data, ["fruit"])
+
+   # Match case-insensitively for 'apple'
+   df.filter(col("fruit").rlike("(?i)^apple$")).show()
+   ```
+   **Result**:
+   ```
+   +------+
+   | fruit|
+   +------+
+   | APPLE|
+   +------+
+   ```
+
+---
+
+5. **Matching Digits**
+   Use regex to match numeric patterns.
+   ```python
+   data = [("123abc",), ("456def",), ("no_numbers",), ("789ghi",)]
+   df = spark.createDataFrame(data, ["text"])
+
+   # Match rows with any digits
+   df.filter(col("text").rlike("\\d")).show()
+
+   # Match rows starting with digits
+   df.filter(col("text").rlike("^\\d+")).show()
+   ```
+
+---
+
+6. **Match Special Characters**
+   Escape special characters if they need to be matched literally.
+   ```python
+   data = [("hello.",), ("world!",), ("test$",), ("123?",)]
+   df = spark.createDataFrame(data, ["text"])
+
+   # Match rows containing a period (.)
+   df.filter(col("text").rlike("\\.")).show()
+   ```
+   **Result**:
+   ```
+   +------+
+   |  text|
+   +------+
+   |hello.|
+   +------+
+   ```
+
+---
+
+7. **Custom Length Validation**
+   Check for strings of a specific length using quantifiers.
+   ```python
+   data = [("abc",), ("abcd",), ("abcdef",)]
+   df = spark.createDataFrame(data, ["text"])
+
+   # Match strings of exactly 4 characters
+   df.filter(col("text").rlike("^.{4}$")).show()
+   ```
+   **Result**:
+   ```
+   +----+
+   |text|
+   +----+
+   |abcd|
+   +----+
+   ```
+
+---
+
+8. **Extracting Patterns**
+   Combine `.rlike()` with conditional logic to extract matched rows.
+   ```python
+   from pyspark.sql.functions import when
+
+   df = df.withColumn("has_digits", when(col("text").rlike("\\d+"), "Yes").otherwise("No"))
+   df.show()
+   ```
+   **Result**:
+   ```
+   +----------+-----------+
+   |      text|has_digits|
+   +----------+-----------+
+   |    123abc|        Yes|
+   |    456def|        Yes|
+   |no_numbers|         No|
+   |    789ghi|        Yes|
+   +----------+-----------+
+   ```
+
+---
+
+9. **Exclude Matches**
+   Use `.rlike()` with `~` to negate the condition.
+   ```python
+   # Exclude rows with any digits
+   df.filter(~col("text").rlike("\\d")).show()
+   ```
+
+---
+
+10. **Combination of Conditions**
+   Combine `.rlike()` with multiple conditions using logical operators (`&`, `|`).
+   ```python
+   # Match rows with digits and containing 'abc'
+   df.filter((col("text").rlike("\\d")) & (col("text").rlike("abc"))).show()
+   ```
+
+---
+
+Summary of Regex Patterns for `.rlike()`:
+| Pattern         | Description                        |
+|------------------|------------------------------------|
+| `^pattern`       | Matches the start of the string   |
+| `pattern$`       | Matches the end of the string     |
+| `.*`             | Matches zero or more characters   |
+| `\\d`            | Matches any digit (0–9)          |
+| `\\D`            | Matches any non-digit            |
+| `[abc]`          | Matches 'a', 'b', or 'c'         |
+| `[^abc]`         | Matches any character except 'a', 'b', or 'c' |
+| `(a|b)`          | Matches either 'a' or 'b'        |
+| `{n}`            | Matches exactly n repetitions    |
+| `{n,}`           | Matches n or more repetitions    |
+| `{n,m}`          | Matches between n and m repetitions |
+
+---
 
 #### Joins
 
