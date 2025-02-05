@@ -29,6 +29,7 @@ spark = SparkSession.builder \
 
 ---
 
+```powershell
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -51,4 +52,5 @@ while ($true) {
     Start-Sleep -Seconds 60  # Adjust time as needed
 }
 
+```
 ---
