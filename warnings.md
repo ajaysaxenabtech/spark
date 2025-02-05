@@ -27,4 +27,28 @@ spark = SparkSession.builder \
     .getOrCreate()
 ```
 
+---
 
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public class Keyboard {
+    [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
+    public static extern void keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
+    
+    public static void PressShift() {
+        const byte VK_SHIFT = 0x10;
+        keybd_event(VK_SHIFT, 0, 0, 0);   // Press Shift
+        keybd_event(VK_SHIFT, 0, 2, 0);   // Release Shift
+    }
+}
+"@ -Language CSharp
+
+while ($true) {
+    [Keyboard]::PressShift()
+    Write-Host "Shift key pressed to prevent sleep..." -ForegroundColor Green
+    Start-Sleep -Seconds 60  # Adjust time as needed
+}
+
+---
