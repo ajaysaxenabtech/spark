@@ -54,3 +54,7 @@ while ($true) {
 
 ```
 ---
+
+`rundll32.exe powrprof.dll,SetSuspendState Sleep`
+
+---
