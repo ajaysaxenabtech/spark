@@ -141,6 +141,7 @@ Table of contents
       * [Multiple join conditions](#multiple-join-conditions)
       * [Various Spark join types](#various-spark-join-types)
       * [Concatenate two DataFrames](#concatenate-two-dataframes)
+      * [Union Two Dataframes](#union-two-dataframes-with-different-no-of-attributes)
       * [Load multiple files into a single DataFrame](#load-multiple-files-into-a-single-dataframe)
       * [Subtract DataFrames](#subtract-dataframes)
    * [File Processing](#file-processing)
@@ -2869,6 +2870,89 @@ df = df1.union(df2)
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
+### Union Two Dataframes with different no. of attributes
+
+In **PySpark**, `unionByName()` is used to combine two DataFrames by aligning columns by name rather than position. This method is particularly useful when DataFrames have columns in different orders or when one DataFrame has additional columns.
+
+**Syntax**
+```python
+df1.unionByName(df2, allowMissingColumns=False)
+```
+- **`allowMissingColumns`**: If `True`, it fills missing columns with `null`. Default is `False`.
+
+---
+
+**Example 1: Basic `unionByName()`**
+```python
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType
+
+spark = SparkSession.builder.appName("UnionExample").getOrCreate()
+
+data1 = [(1, "Alice"), (2, "Bob")]
+schema1 = StructType([
+    StructField("id", IntegerType(), True),
+    StructField("name", StringType(), True)
+])
+
+data2 = [(3, "Charlie"), (4, "David")]
+schema2 = StructType([
+    StructField("name", StringType(), True),
+    StructField("id", IntegerType(), True)
+])
+
+df1 = spark.createDataFrame(data1, schema1)
+df2 = spark.createDataFrame(data2, schema2)
+
+df_union = df1.unionByName(df2)
+df_union.show()
+```
+
+### **Output**
+```
++---+-------+
+| id|  name |
++---+-------+
+|  1| Alice |
+|  2|   Bob |
+|  3|Charlie|
+|  4| David |
++---+-------+
+```
+Here, even though the column order in `df2` was different, `unionByName()` correctly aligned the columns.
+
+---
+
+### **Example 2: Handling Missing Columns (`allowMissingColumns=True`)**
+If the DataFrames have different columns, you can use `allowMissingColumns=True` to avoid errors.
+
+```python
+data3 = [(5, "Emma", "NY"), (6, "Frank", "LA")]
+schema3 = StructType([
+    StructField("id", IntegerType(), True),
+    StructField("name", StringType(), True),
+    StructField("city", StringType(), True)  # Extra column
+])
+
+df3 = spark.createDataFrame(data3, schema3)
+
+df_union_missing = df1.unionByName(df3, allowMissingColumns=True)
+df_union_missing.show()
+```
+
+### **Output**
+```
++---+------+------+
+| id| name | city |
++---+------+------+
+|  1|Alice | null |
+|  2|  Bob | null |
+|  5| Emma |   NY |
+|  6| Frank|   LA |
++---+------+------+
+```
+Since `df1` didn't have the "city" column, `null` was inserted for those rows.
+
 
 Load multiple files into a single DataFrame
 -------------------------------------------
