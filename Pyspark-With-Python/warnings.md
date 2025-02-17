@@ -70,13 +70,13 @@ def convert_integer_suffixed_column_to_map(df: DataFrame, value_col_name: str) -
     # Applying the UDF logic to convert and map the columns
     return df.select(
         *[
-            non_value_col,  # Keeping the non-value columns as is
+            col(non_value_col),  # Keeping the non-value columns as is
             create_map(
                 *[
                     lit(col_name.split("_")[-2]).cast(IntegerType()),  # Extracting the number before '_amt' (e.g., '1' from 'tier_1_amt')
                     col(col_name)
                 ]
-            ).alias(f"{value_col_name}_{col_name.split('_')[-2]}_mapped")  # Using suffix as part of the new column name
+            ).alias(f"{value_col_name}_{col_name.split('_')[-2]}_mapped")  # Corrected alias
             for col_name in df.columns
             if value_col_name in col_name
         ]
@@ -84,5 +84,6 @@ def convert_integer_suffixed_column_to_map(df: DataFrame, value_col_name: str) -
 
 # Assuming 'df_dev1' is your DataFrame
 df_dev1 = convert_integer_suffixed_column_to_map(df_dev1, 'tier')
+
 
 ```
