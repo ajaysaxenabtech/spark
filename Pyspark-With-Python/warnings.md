@@ -66,42 +66,51 @@ from itertools import chain
 from pyspark.sql.types import IntegerType
 
 def convert_integer_suffixed_column_to_map(
-    df: DataFrame, value_col_name: str, map_name: str
+    df: DataFrame, value_col_prefix: str, map_name: str, value_type="double"
 ) -> DataFrame:
+    """
+    Converts columns with integer suffixes into a map column.
+    
+    :param df: Input DataFrame
+    :param value_col_prefix: Column prefix to filter relevant columns
+    :param map_name: Name for the output map column
+    :param value_type: Data type for map values ("double" or "string")
+    :return: Transformed DataFrame with a new map column
+    """
+    cast_type = IntegerType() if value_type == "double" else None  # Double values remain unchanged
+    
     return df.select(
         *[
             non_value_col
             for non_value_col in df.columns
-            if value_col_name not in non_value_col
+            if not non_value_col.startswith(value_col_prefix)
         ],
         create_map(
             list(
                 chain(
                     *(
                         (
-                            lit(value_col.split("_")[-2]).cast(IntegerType()),  # Extracting integer part
-                            col(value_col)
+                            lit(value_col.split("_")[-2]).cast(IntegerType()),  # Extract integer part
+                            col(value_col).cast("string") if value_type == "string" else col(value_col)
                         )
                         for value_col in df.columns
-                        if value_col.startswith(value_col_name)
+                        if value_col.startswith(value_col_prefix)
                     )
                 )
             )
         ).alias(map_name),
     )
 
-# Apply transformation
-df_transformed = convert_integer_suffixed_column_to_map(df_dev1, "tier", "credit_interest_band_limit_type")
+# Convert 'tier_x_amt' to map (integer -> double) as 'credit_interest_band_limit_type'
+df_transformed_1 = convert_integer_suffixed_column_to_map(df_dev1, "tier", "credit_interest_band_limit_type", "double")
+
+# Convert 'rt_link_x_cde' to map (integer -> string) as 'credit_interest_base_rate_code'
+df_transformed_2 = convert_integer_suffixed_column_to_map(df_transformed_1, "rt_link", "credit_interest_base_rate_code", "string")
 
 # Show schema after transformation
-df_transformed.printSchema()
+df_transformed_2.printSchema()
 
 # Show transformed dataframe
-df_transformed.show(truncate=False)
-
-
-
-
-
+df_transformed_2.show(truncate=False)
 
 ```
