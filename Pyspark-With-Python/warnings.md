@@ -58,7 +58,7 @@ while ($true) {
 `rundll32.exe powrprof.dll,SetSuspendState Sleep`
 
 ---
-
+```python
 from pyspark.sql.functions import col, lit, create_map
 from pyspark.sql.types import IntegerType
 from pyspark.sql import DataFrame
@@ -84,3 +84,5 @@ def convert_integer_suffixed_column_to_map(df: DataFrame, value_col_name: str) -
 
 # Assuming 'df_dev1' is your DataFrame
 df_dev1 = convert_integer_suffixed_column_to_map(df_dev1, 'tier')
+
+```
