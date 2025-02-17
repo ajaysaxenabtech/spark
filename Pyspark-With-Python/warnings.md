@@ -67,23 +67,28 @@ def convert_integer_suffixed_column_to_map(df: DataFrame, value_col_name: str) -
     # Filter out columns that don't have the required suffix (e.g., 'tier_X_amt')
     non_value_col = [col_name for col_name in df.columns if value_col_name not in col_name]
 
-    # Applying the UDF logic to convert and map the columns
-    return df.select(
-        *[
-            col(non_value_col),  # Keeping the non-value columns as is
-            create_map(
-                *[
+    # Initialize an empty list to hold the expressions for select
+    select_exprs = []
+
+    # Add non-value columns (columns that do not contain the value_col_name) as is
+    select_exprs.extend([col(c) for c in non_value_col])
+
+    # Add the transformed columns (columns with 'tier_X_amt')
+    for col_name in df.columns:
+        if value_col_name in col_name:
+            select_exprs.append(
+                create_map(
                     lit(col_name.split("_")[-2]).cast(IntegerType()),  # Extracting the number before '_amt' (e.g., '1' from 'tier_1_amt')
                     col(col_name)
-                ]
-            ).alias(f"{value_col_name}_{col_name.split('_')[-2]}_mapped")  # Corrected alias
-            for col_name in df.columns
-            if value_col_name in col_name
-        ]
-    )
+                ).alias(f"{value_col_name}_{col_name.split('_')[-2]}_mapped")  # Creating the new column name
+            )
+    
+    # Return the DataFrame with the selected columns
+    return df.select(*select_exprs)
 
 # Assuming 'df_dev1' is your DataFrame
 df_dev1 = convert_integer_suffixed_column_to_map(df_dev1, 'tier')
+
 
 
 ```
