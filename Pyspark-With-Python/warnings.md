@@ -61,31 +61,43 @@ while ($true) {
 
 ```python
 
-from pyspark.sql import functions as F
-from pyspark.sql.types import MapType, StringType, IntegerType
+from pyspark.sql.functions import col, lit, create_map
 from itertools import chain
+from pyspark.sql.types import IntegerType
 
-# Define the modified UDF to create MapType columns from multiple attributes, using only integer suffixes as keys
-def convert_integer_suffixed_column_to_map(df, value_col_name: str) -> "DataFrame":
-    # Create a list of key-value pairs where the key is the integer suffix and value is the column value
-    return df.withColumn(
-        "credit_interest_band_limit_type",  # New column with the merged MapType
-        F.create_map(
-            *list(
+def convert_integer_suffixed_column_to_map(
+    df: DataFrame, value_col_name: str, map_name: str
+) -> DataFrame:
+    return df.select(
+        *[
+            non_value_col
+            for non_value_col in df.columns
+            if value_col_name not in non_value_col
+        ],
+        create_map(
+            list(
                 chain(
-                    *[
+                    *(
                         (
-                            F.lit(value_col.split("_")[-1])  # Extract the integer part of the column name
-                            .cast(StringType()),  # Column suffix (integer) as the string key
-                            F.col(value_col),  # Corresponding column value
+                            lit(value_col.split("_")[-2]).cast(IntegerType()),  # Extracting integer part
+                            col(value_col)
                         )
                         for value_col in df.columns
-                        if value_col_name in value_col  # Filter columns with the specified suffix pattern
-                    ]
+                        if value_col.startswith(value_col_name)
+                    )
                 )
             )
-        ).cast(MapType(StringType(), IntegerType()))  # Create MapType column with String keys (integers as strings) and Integer values
+        ).alias(map_name),
     )
+
+# Apply transformation
+df_transformed = convert_integer_suffixed_column_to_map(df_dev1, "tier", "credit_interest_band_limit_type")
+
+# Show schema after transformation
+df_transformed.printSchema()
+
+# Show transformed dataframe
+df_transformed.show(truncate=False)
 
 
 
