@@ -65,9 +65,9 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import MapType, StringType, IntegerType
 from itertools import chain
 
-# Define the modified UDF to create MapType columns from multiple attributes
+# Define the modified UDF to create MapType columns from multiple attributes, using only integer suffixes as keys
 def convert_integer_suffixed_column_to_map(df, value_col_name: str) -> "DataFrame":
-    # Create a list of key-value pairs where the key is the column name and value is the column value
+    # Create a list of key-value pairs where the key is the integer suffix and value is the column value
     return df.withColumn(
         "credit_interest_band_limit_type",  # New column with the merged MapType
         F.create_map(
@@ -75,8 +75,8 @@ def convert_integer_suffixed_column_to_map(df, value_col_name: str) -> "DataFram
                 chain(
                     *[
                         (
-                            F.lit(value_col.split("_")[-1])  # Extract the suffix (integer) part
-                            .cast(StringType()),  # Column name as a string key
+                            F.lit(value_col.split("_")[-1])  # Extract the integer part of the column name
+                            .cast(StringType()),  # Column suffix (integer) as the string key
                             F.col(value_col),  # Corresponding column value
                         )
                         for value_col in df.columns
@@ -84,7 +84,7 @@ def convert_integer_suffixed_column_to_map(df, value_col_name: str) -> "DataFram
                     ]
                 )
             )
-        ).cast(MapType(StringType(), IntegerType()))  # Create MapType column with String keys and Integer values
+        ).cast(MapType(StringType(), IntegerType()))  # Create MapType column with String keys (integers as strings) and Integer values
     )
 
 # Sample DataFrame
@@ -101,6 +101,7 @@ df_dev1 = convert_integer_suffixed_column_to_map(df_dev1, "tier")
 
 # Show the result
 df_dev1.show(truncate=False)
+
 
 
 
