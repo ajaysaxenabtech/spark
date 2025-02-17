@@ -87,20 +87,6 @@ def convert_integer_suffixed_column_to_map(df, value_col_name: str) -> "DataFram
         ).cast(MapType(StringType(), IntegerType()))  # Create MapType column with String keys (integers as strings) and Integer values
     )
 
-# Sample DataFrame
-data = [
-    (1000, 2000, 3000, 4000),  # Values corresponding to the columns
-]
-
-columns = ['tier_1_amt', 'tier_2_amt', 'tier_3_amt', 'tier_4_amt']
-
-df_dev1 = spark.createDataFrame(data, columns)
-
-# Apply UDF to create 'credit_interest_band_limit_type' column as a map
-df_dev1 = convert_integer_suffixed_column_to_map(df_dev1, "tier")
-
-# Show the result
-df_dev1.show(truncate=False)
 
 
 
