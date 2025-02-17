@@ -59,6 +59,49 @@ while ($true) {
 
 ---
 
+```python
+
+from pyspark.sql import functions as F
+from pyspark.sql.types import MapType, StringType, IntegerType
+from itertools import chain
+
+# Define the modified UDF to create MapType columns from multiple attributes
+def convert_integer_suffixed_column_to_map(df, value_col_name: str) -> "DataFrame":
+    # Create a list of key-value pairs where the key is the column name and value is the column value
+    return df.withColumn(
+        "credit_interest_band_limit_type",  # New column with the merged MapType
+        F.create_map(
+            *list(
+                chain(
+                    *[
+                        (
+                            F.lit(value_col.split("_")[-1])  # Extract the suffix (integer) part
+                            .cast(StringType()),  # Column name as a string key
+                            F.col(value_col),  # Corresponding column value
+                        )
+                        for value_col in df.columns
+                        if value_col_name in value_col  # Filter columns with the specified suffix pattern
+                    ]
+                )
+            )
+        ).cast(MapType(StringType(), IntegerType()))  # Create MapType column with String keys and Integer values
+    )
+
+# Sample DataFrame
+data = [
+    (1000, 2000, 3000, 4000),  # Values corresponding to the columns
+]
+
+columns = ['tier_1_amt', 'tier_2_amt', 'tier_3_amt', 'tier_4_amt']
+
+df_dev1 = spark.createDataFrame(data, columns)
+
+# Apply UDF to create 'credit_interest_band_limit_type' column as a map
+df_dev1 = convert_integer_suffixed_column_to_map(df_dev1, "tier")
+
+# Show the result
+df_dev1.show(truncate=False)
+
 
 
 
