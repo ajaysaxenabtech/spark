@@ -80,7 +80,7 @@ def column_completeness(df: DataFrame, column_list: list) -> DataFrame:
 column_list = df_dev1.columns  # Assuming df_dev1 is the final DataFrame
 df_completeness = column_completeness(df_dev1, column_list)
 df_completeness.show()
-
+ 
 
 
 ```
