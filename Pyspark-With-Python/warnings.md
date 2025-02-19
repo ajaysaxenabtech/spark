@@ -61,25 +61,56 @@ while ($true) {
 
 ```python
 
-from pyspark.sql import functions as F
-from pyspark.sql import DataFrame
+from pyspark.sql.functions import col, lit, create_map
+from itertools import chain
+from pyspark.sql.types import IntegerType
 
-def column_completeness(df: DataFrame, column_list: list) -> DataFrame:
-    # Create a list of expressions for each column that calculate its non-null completeness
-    df_completeness = df.select(
+def convert_integer_suffixed_column_to_map(
+    df: DataFrame, value_col_prefix: str, map_name: str, convert_to_string=False
+) -> DataFrame:
+    """
+    Converts columns with integer suffixes into a map column.
+    
+    :param df: Input DataFrame
+    :param value_col_prefix: Column prefix to filter relevant columns
+    :param map_name: Name for the output map column
+    :param convert_to_string: If True, converts double -> integer -> string
+    :return: Transformed DataFrame with a new map column
+    """
+    return df.select(
         *[
-            (F.format_number(
-                F.count(F.when(F.col(c).isNotNull(), c)) * 100 / F.count(F.lit(1)), 2
-            ).alias(c))  # Calculate the percentage of non-null values for each column
-            for c in column_list  # Iterate over each column in column_list
-        ]
+            non_value_col
+            for non_value_col in df.columns
+            if not non_value_col.startswith(value_col_prefix)
+        ],
+        create_map(
+            list(
+                chain(
+                    *(
+                        (
+                            lit(value_col.split("_")[-2]).cast(IntegerType()),  # Extract integer part
+                            col(value_col).cast(IntegerType()).cast("string") if convert_to_string else col(value_col)  
+                        )
+                        for value_col in df.columns
+                        if value_col.startswith(value_col_prefix)
+                    )
+                )
+            )
+        ).alias(map_name),
     )
-    return df_completeness
 
-# Usage example with df_dev1:
-column_list = df_dev1.columns  # Assuming df_dev1 is the final DataFrame
-df_completeness = column_completeness(df_dev1, column_list)
-df_completeness.show()
+# Convert 'tier_x_amt' to map (integer -> double) as 'credit_interest_band_limit_type'
+df_transformed_1 = convert_integer_suffixed_column_to_map(df_dev1, "tier", "credit_interest_band_limit_type")
+
+# Convert 'rt_link_x_cde' to map (integer -> string) as 'credit_interest_base_rate_code'
+df_transformed_2 = convert_integer_suffixed_column_to_map(df_transformed_1, "rt_link", "credit_interest_base_rate_code", convert_to_string=True)
+
+# Show schema after transformation
+df_transformed_2.printSchema()
+
+# Show transformed dataframe
+df_transformed_2.show(truncate=False)
+
  
 
 
