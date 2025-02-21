@@ -3,6 +3,7 @@
 A quick reference guide to the most commonly used patterns and functions in PySpark SQL.
 
 #### Table of Contents
+- [row_operations](#row_operation)
 - [Quickstart](#quickstart)
 - [Basics](#basics)
 - [Common Patterns](#common-patterns)
@@ -27,7 +28,7 @@ A quick reference guide to the most commonly used patterns and functions in PySp
 
 If you can't find what you're looking for, check out the [PySpark Official Documentation](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.types.StructType.html) and add it here!
 
-## Crucial
+### Row_Operation
 
 In PySpark, to access a specific column's value for each row in a DataFrame, you typically use **row objects**. This is usually done after collecting or converting the DataFrame into an RDD or a list of rows. Here's how you can access a column's value using the `row.column_name` syntax:
 
