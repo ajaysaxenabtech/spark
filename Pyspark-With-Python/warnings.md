@@ -49,7 +49,7 @@ public class Keyboard {
 while ($true) {
     [Keyboard]::PressShift()
     Write-Host "Shift key pressed to prevent sleep..." -ForegroundColor Green
-    Start-Sleep -Seconds 60  # Adjust time as needed
+    Start-Sleep -Seconds 290  # Adjust time as needed
 }
 
 ```
