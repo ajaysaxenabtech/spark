@@ -115,3 +115,17 @@ df_transformed_2.show(truncate=False)
 
 
 ```
+
+---
+
+
+
+**"Hi Everyone, I’m excited to join DAO ESG as a Data Analyst! I have experience in data analytics, portfolio risk modeling, and ESG data processing, with a background in working on financial risk models and data pipelines for HSBC. I’m eager to contribute to ESG analytics and learn more about sustainability-driven finance.  
+
+Outside of work, I enjoy exploring financial markets, staying active with jogging, and deep-diving into technology and AI trends. Looking forward to collaborating with you all!"**  
+
+
+
+
+
+---
