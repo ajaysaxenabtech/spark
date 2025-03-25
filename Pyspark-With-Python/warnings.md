@@ -120,10 +120,4 @@ df_transformed_2.show(truncate=False)
 
 
 
-For your **1-minute introduction** at the **DA_Connect meeting**, here’s a structured and engaging way to present yourself confidently:  
-
----
-
-
-
 ---
