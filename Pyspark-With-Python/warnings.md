@@ -120,6 +120,34 @@ df_transformed_2.show(truncate=False)
 
 
 
+For your **1-minute introduction** at the **DA_Connect meeting**, here’s a structured and engaging way to present yourself confidently:  
 
+---
+
+### **1-Minute Introduction**  
+
+**1. Start with a Friendly Greeting**  
+*"Hi everyone, I’m excited to be part of this forum and to introduce myself today!"*  
+
+**2. Who You Are & Your Background**  
+*"My name is [Your Name], and I recently joined DAO ESG as a Data Analyst. I have experience in data analytics, financial risk modeling, and ESG data processing. Before this, I worked on building data pipelines and financial models for HSBC’s risk teams."*  
+
+**3. Your Current Role & Contribution to ESG**  
+*"Now, in ESG, I am looking forward to working on data-driven sustainability insights, regulatory reporting, and enhancing ESG analytics for investment and risk assessment."*  
+
+**4. Personal Interests**  
+*"Outside of work, I enjoy following financial markets, exploring AI trends, and staying active with jogging. I'm looking forward to collaborating and learning from everyone here!"*  
+
+**5. End with Enthusiasm**  
+*"Thanks for having me, and I’m excited to be part of this journey with all of you!"*  
+
+---
+
+💡 **Tips for Delivery:**  
+✅ **Keep it conversational and confident** (smile and speak naturally).  
+✅ **Pause briefly after each section** (don’t rush through).  
+✅ **Make eye contact** (or look into the camera if virtual).  
+
+Would you like me to refine it further or add any specific details? 🚀
 
 ---
