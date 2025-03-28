@@ -10,6 +10,12 @@ display(HTML("<style>.container{width:100% !important; }</style>"))
 
 ---
 
+
+from IPython.display import display, HTML
+display(HTML("<style>.CodeMirror { white-space: pre-wrap !important; }</style>"))
+
+---
+
 To wrap text inside a Python code cell in Jupyter Notebook (on JupyterHub), you can use the following approaches:
 
 ### 1. **Enable Line Wrapping in Jupyter Notebook Settings**
