@@ -10,74 +10,47 @@ display(HTML("<style>.container{width:100% !important; }</style>"))
 
 ---
 
+To wrap text inside a Python code cell in Jupyter Notebook (on JupyterHub), you can use the following approaches:
 
+### 1. **Enable Line Wrapping in Jupyter Notebook Settings**
+   - Open a new cell and run:
+     ```python
+     from notebook.services.config import ConfigManager
+     cm = ConfigManager()
+     cm.update('notebook', {"CodeCell": {"cm_config": {"lineWrapping": True}}})
+     ```
+   - This will enable text wrapping inside code cells.
 
-In **Jupyter Notebook (JupyterHub)**, text wrapping inside code cells is not enabled by default, but you can enable it using **CSS overrides** or **custom configurations**.
+### 2. **Modify Jupyter Notebook Configuration**
+   If you have access to JupyterHub's configuration settings, you can enable line wrapping permanently:
+   - Open JupyterHub terminal and edit the `custom.js` file:
+     ```bash
+     nano ~/.jupyter/custom/custom.js
+     ```
+   - Add the following lines:
+     ```js
+     require(["notebook/js/codecell"], function (codecell) {
+         codecell.CodeCell.options_default.cm_config.lineWrapping = true;
+     });
+     ```
+   - Save the file and restart JupyterHub.
 
----
+### 3. **Use Keyboard Shortcuts (Temporary Solution)**
+   - Click inside a code cell and press:
+     - `Ctrl + Shift + P` → Search for **"Toggle Line Wrap"** and enable it.
 
-### **Method 1: Using CSS (Temporary for Current Session)**
-Run the following in a **Markdown cell**:
+### 4. **Modify `custom.css` (Alternative UI Method)**
+   - If your JupyterHub allows custom CSS, create a file:
+     ```bash
+     nano ~/.jupyter/custom/custom.css
+     ```
+   - Add:
+     ```css
+     .CodeMirror pre {
+         white-space: pre-wrap !important;
+         word-break: break-word !important;
+     }
+     ```
+   - Save and restart JupyterHub.
 
-```html
-<style>
-    .CodeMirror pre {
-        white-space: pre-wrap !important;
-        word-wrap: break-word !important;
-    }
-</style>
-```
-- This will wrap text in all code cells, but it will reset when you restart the notebook.
-
----
-
-### **Method 2: Modifying Jupyter's Custom CSS (Persistent)**
-1. **Find Jupyter's custom CSS directory** by running:
-   ```bash
-   jupyter --config-dir
-   ```
-   It will return a path like:
-   ```
-   /home/user/.jupyter
-   ```
-2. **Create or edit `custom.css`** inside:
-   ```
-   ~/.jupyter/custom/custom.css
-   ```
-3. Add the following CSS:
-   ```css
-   .CodeMirror pre {
-       white-space: pre-wrap !important;
-       word-wrap: break-word !important;
-   }
-   ```
-4. Restart JupyterHub to apply changes.
-
----
-
-### **Method 3: Using nbextensions (If Enabled)**
-If **Jupyter Notebook Extensions** are available, you can install `code_prettify`:
-1. Install it:
-   ```bash
-   pip install jupyter_contrib_nbextensions
-   jupyter contrib nbextension install --user
-   ```
-2. Enable it:
-   ```bash
-   jupyter nbextension enable code_prettify/main
-   ```
-3. Restart JupyterHub.
-
----
-
-### **Alternative: Adjusting Display Width (Workaround)**
-You can set Jupyter to **wrap output text** but not the code inside the cell:
-```python
-from IPython.core.display import display, HTML
-display(HTML("<style>.container { width:80% !important; }</style>"))
-```
-This makes the Jupyter window wider, helping avoid horizontal scrolling.
-
----
-
-Let me know which method works for you or if you need a **custom script** for auto-applying these changes in JupyterHub! 🚀
+Let me know if you need further help! 🚀
