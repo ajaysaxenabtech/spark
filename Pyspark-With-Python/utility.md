@@ -107,3 +107,75 @@ This will enable automatic wrapping inside code cells.
 
 ---
 
+To wrap text inside a code cell in **Jupyter Notebook** (running on JupyterHub), you can use either **CSS styling** or **IPython display utilities**. Here are the methods:
+
+### **Method 1: Using CSS Styling (Permanent for a Notebook)**
+You can inject custom CSS to enable text wrapping in code cells.
+
+1. **Create a new cell** and run:
+   ```python
+   from IPython.display import HTML, display
+
+   display(HTML("""
+   <style>
+       .CodeMirror pre {
+           white-space: pre-wrap;
+           word-break: break-all;
+       }
+   </style>
+   """))
+   ```
+   - This will enable **text wrapping** for all code cells in the notebook.
+
+2. **Alternatively**, if you only want to wrap text in a **specific output cell**, use:
+   ```python
+   from IPython.display import HTML
+   HTML("<style>div.output_area pre { white-space: pre-wrap; }</style>")
+   ```
+
+---
+
+### **Method 2: Using `%%html` Magic (Temporary)**
+If you want a quick solution for a single notebook session:
+```python
+%%html
+<style>
+    .CodeMirror pre {white-space: pre-wrap;}
+</style>
+```
+
+---
+
+### **Method 3: Adjusting Notebook Settings (Persistent)**
+If you have access to JupyterHub's configuration, you can modify the `custom.css` file:
+
+1. **Find Jupyter's CSS directory** by running in a notebook:
+   ```python
+   import jupyter_core
+   jupyter_core.paths.jupyter_config_dir()
+   ```
+2. **Create or edit** `~/.jupyter/custom/custom.css` and add:
+   ```css
+   .CodeMirror pre {
+       white-space: pre-wrap !important;
+   }
+   ```
+3. **Restart** JupyterHub for changes to take effect.
+
+---
+
+### **Method 4: Using `IPython.display` for Specific Outputs**
+If you want to wrap **only specific long outputs**, use:
+```python
+from IPython.display import display, HTML
+display(HTML("<div style='white-space: pre-wrap;'>Your long text here...</div>"))
+```
+
+---
+
+### **Which Method to Choose?**
+- **For a single notebook**: Use **Method 1 or 2**.
+- **For all notebooks**: Use **Method 3** (if you have admin access).
+- **For specific outputs**: Use **Method 4**.
+
+
