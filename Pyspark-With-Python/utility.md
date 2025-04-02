@@ -65,25 +65,6 @@ To wrap text inside a Python code cell in Jupyter Notebook (on JupyterHub), you 
 
 
 
-### **Step 2: Identify New Test Cases**  
-- **Gap Analysis in Existing Scenarios:**  
-  - Validate **record count parity** with Malta Source Data.  
-  - Ensure **JOIN integrity** (LEFT JOINS, unique keys, TRIM applied).  
-  - Check **derived attribute calculations** (e.g., logic behind `eu_flag_final`).  
-  - Verify **CIS Mastergroup Mapping** for active records.  
-  - Validate **GID uniqueness** (ignore 1:N cases).  
-  - Ensure **External Identifiers (LEI/Bloomberg ID)** are correctly mapped.  
-
-- **New Test Case Suggestions:**  
-  - **Completeness Checks:**  
-    - Ensure every record has `client_profile_id`, `final_counterparty_name`, and `lei_malta`.  
-  - **Accuracy & Consistency Checks:**  
-    - Verify `mastergroup_status` is only ‘ACTIVE’.  
-    - Check if LEI is sourced from `Wholesale Party Identifiers`.  
-  - **Timeliness Checks:**  
-    - Validate that the latest CIS & GCDU data are used.  
-  - **Business Rule Validation:**  
-    - `eu_flag_final` must be correctly derived based on business rules.  
 
 
 
