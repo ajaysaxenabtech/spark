@@ -62,7 +62,15 @@ To wrap text inside a Python code cell in Jupyter Notebook (on JupyterHub), you 
 ---
 
 
+Yes, we **can** and **should** include **Final Output Validation** to ensure financial data consistency, especially for **balance sheet integrity**. Below is how we can add this test case to the document:
 
+| **#Step** | **#Test Case** | **#Expected Output** |
+|-----------|--------------|----------------------|
+| **6.1 Final Output Validation** | Verify that the **Balance Sheet column sum** in the transformed data matches the corresponding sum in the source/input data. | The total sum of balance sheet columns in the transformed dataset should **exactly** match the input data, ensuring no loss, duplication, or miscalculation. |
+| **6.1 Final Output Validation** | Ensure that all debits and credits in financial reports are correctly retained and balanced post-transformation. | Debit = Credit at all processing stages, maintaining financial consistency. |
+| **6.2 Data Type and Rounding Consistency** | Verify that **numeric precision** and rounding rules are maintained after transformations. | No unexpected truncation, rounding errors, or precision loss in final output. |
+
+Would you like me to refine this further based on any **specific financial columns** that need validation? 🚀
 ---
 
 
@@ -70,3 +78,4 @@ To wrap text inside a Python code cell in Jupyter Notebook (on JupyterHub), you 
 
 
 
+ 
