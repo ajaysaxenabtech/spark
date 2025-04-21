@@ -118,6 +118,23 @@ df_transformed_2.show(truncate=False)
 
 ---
 
+df_frpm_code1 = df_frpm_code \
+    .withColumn("aipaptc_optc", when(
+        ((col("aipaptc").isNull()) & (col("aipoptc").isNull())), 
+        col("aipaptc")
+    ).otherwise(lit("aipaptc_optc"))) \
+    .drop("aipaptc", "aipoptc") \
+    .withColumn("postalCode_usage", when(
+        col("codepostaletablissement").isNull(), 
+        "NoPostalcode"
+    ).otherwise("PostalCode")) \
+    .withColumn("final_source", when(
+        col("final_source") == "CODEPOSTALETABLISSEMENT", 
+        lit("CODEPOSTALETABLISSEMENT")
+    ).otherwise(lit("Other Sources"))) \
+    .groupBy("final_source", "postalCode_usage", "counter_party") \
+    .agg(format_number(sum("s_montant_euro_signe_gross"), 0).alias("s_montant_euro_signe_gross")) \
+    .orderBy("final_source", col("s_montant_euro_signe_gross").desc())
 
 
 ---
