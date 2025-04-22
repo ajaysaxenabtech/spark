@@ -118,6 +118,35 @@ df_transformed_2.show(truncate=False)
 
 ---
 
+# Observation Summary Explanation
 
+An observation summary in this context would be a concise report highlighting key findings, inconsistencies, and notable patterns from the data analysis of the EBA Pillar-3 postal code establishment information.
+
+## Potential Observations from This Data:
+
+1. **Data Completeness Issue**: 
+   - The "alpaptc_optc" field shows blank values (✗), indicating missing data that should be investigated
+
+2. **Field Mapping Inconsistencies**: 
+   - Multiple fields (CODEPOSTALETABLISSEMENT, CPS_NFCP) are marked with ✗, suggesting potential mapping or validation issues between source and target fields
+
+3. **Limited Data Volume**: 
+   - The total row count is only 10, which seems very small for financial reporting - worth verifying if this is the complete dataset
+
+4. **Risk Exposure**: 
+   - All records show "Yes" for subject_to_physical_risk, which might be significant for risk reporting
+
+5. **Value Concentration**: 
+   - The sum of s_montant_euro_signe_gross is relatively small (3,945), potentially indicating this is either a sample or a very specific subset
+
+## Suggested PPT Structure:
+
+1. **Introduction**: Purpose of analysis
+2. **Data Overview**: Sources, time period, scope
+3. **Key Observations**: The points above
+4. **Data Quality Issues**: Missing/inconsistent fields
+5. **Next Steps**: Validation needed, actions required
+
+The summary should help Livia/Reporting team quickly understand the current state of the data and what requires attention before final reporting.
 
 ---
