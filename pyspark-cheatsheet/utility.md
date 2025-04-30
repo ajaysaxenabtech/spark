@@ -2,67 +2,93 @@
 
 ---
 ```python
-# Creating a consolidated test plan for validating the final_file_pblu DataFrame
+Thanks for letting me know! Here's the **complete list of test cases** in plain text format so you can easily copy, store, or convert it into your own format:
 
-import pandas as pd
+---
 
-# Define test cases with description and validation steps
-test_cases = [
-    {
-        "Test Case": "TC1",
-        "Description": "Validate schema of final_file_pblu",
-        "Validation Steps": "Check if all expected columns (e.g., subject_to_physical_risk, o_over_s_amount, riskno, etc.) exist in final_file_pblu"
-    },
-    {
-        "Test Case": "TC2",
-        "Description": "Validate distinct count of records against original dataset",
-        "Validation Steps": "Ensure row count of final_file_pblu is less than or equal to the row count of pblu2 and unsecured_file4"
-    },
-    {
-        "Test Case": "TC3",
-        "Description": "Validate deduplication using row_number",
-        "Validation Steps": "Ensure that final_file_pblu has only one row per group defined by partition logic (no duplicates based on business key)"
-    },
-    {
-        "Test Case": "TC4",
-        "Description": "Check values of 'riskno' column",
-        "Validation Steps": "Ensure values in column 'riskno' are only 1 (collateral), 2 (loan), or 3 (other)"
-    },
-    {
-        "Test Case": "TC5",
-        "Description": "Validate 'der_risk' assignment",
-        "Validation Steps": "Ensure der_risk is 1 when either high_acute_risk or high_chronic_risk is 1; otherwise 0"
-    },
-    {
-        "Test Case": "TC6",
-        "Description": "Validate 'subject_to_physical_risk' logic",
-        "Validation Steps": "Ensure it's 'Yes' if any of high_acute_risk, high_chronic_risk, both_high_risk is 1; else 'No'"
-    },
-    {
-        "Test Case": "TC7",
-        "Description": "Validate coalesced hazard values",
-        "Validation Steps": "Ensure columns like 'river_flood', 'urban_flood', etc., contain final coalesced values without nulls if any iteration data is present"
-    },
-    {
-        "Test Case": "TC8",
-        "Description": "Validate 'could_be_mapped' logic",
-        "Validation Steps": "Check if it is 'Yes' when both acute_risks and chronic_risks are not null"
-    },
-    {
-        "Test Case": "TC9",
-        "Description": "Validate aggregation of o_over_s_amount",
-        "Validation Steps": "Sum of o_over_s_amount grouped by subject_to_physical_risk and could_be_mapped should match total sum"
-    },
-    {
-        "Test Case": "TC10",
-        "Description": "Validate filtering for 'No' physical risk",
-        "Validation Steps": "Distinct ctpt_id count when subject_to_physical_risk = 'No' should match manually filtered subset"
-    }
-]
+### ✅ **Test Cases for `final_file_pblu` Validation**
 
-df_test_cases = pd.DataFrame(test_cases)
-import ace_tools as tools; tools.display_dataframe_to_user(name="Test Cases for final_file_pblu", dataframe=df_test_cases)
+---
 
+#### **TC1: Validate schema of `final_file_pblu`**
+- **Description**: Ensure all required columns are present.
+- **Validation Steps**:
+  - Print `final_file_pblu.columns`.
+  - Confirm it includes at least:
+    - `'subject_to_physical_risk'`
+    - `'o_over_s_amount'`
+    - `'riskno'`
+    - `'acute_risks'`
+    - `'chronic_risks'`
+    - `'could_be_mapped'`, etc.
+
+---
+
+#### **TC2: Validate row count after deduplication**
+- **Description**: Ensure deduplication logic reduced or preserved record count appropriately.
+- **Validation Steps**:
+  - Compare `final_file_pblu.count()` ≤ `unsecured_file4.count()` and `pblu2.count()`.
+
+---
+
+#### **TC3: Validate `row_number` partitioning logic**
+- **Description**: Each group should have only one selected record.
+- **Validation Steps**:
+  - Check for duplicates in business key used in `Window.partitionBy(...)`.
+
+---
+
+#### **TC4: Validate `riskno` assignment**
+- **Description**: Confirm correct mapping of source type.
+- **Validation Steps**:
+  - Count of distinct values in `riskno` must be subset of `{1, 2, 3}`.
+  - Cross-check with values in `final_source`.
+
+---
+
+#### **TC5: Validate `der_risk` logic**
+- **Description**: Flag should be 1 if `high_acute_risk` or `high_chronic_risk` is 1.
+- **Validation Steps**:
+  - Filter where `der_risk == 1` and confirm at least one of those two columns is also 1.
+
+---
+
+#### **TC6: Validate `subject_to_physical_risk` logic**
+- **Description**: Should be "Yes" if any high risk present.
+- **Validation Steps**:
+  - `subject_to_physical_risk = "Yes"` only when at least one of the three risk flags is 1.
+
+---
+
+#### **TC7: Validate coalesced hazard columns**
+- **Description**: Ensure final hazard values are correctly coalesced.
+- **Validation Steps**:
+  - Columns like `river_flood`, `urban_flood`, etc. should not be null when corresponding iteration columns had data.
+
+---
+
+#### **TC8: Validate `could_be_mapped` logic**
+- **Description**: Should be "Yes" if both acute and chronic risk columns are not null.
+- **Validation Steps**:
+  - Filter where `acute_risks` and `chronic_risks` are not null → expect `could_be_mapped == "Yes"`.
+
+---
+
+#### **TC9: Validate `o_over_s_amount` aggregation**
+- **Description**: Ensure group-wise sums are logically consistent.
+- **Validation Steps**:
+  - `sum(o_over_s_amount)` by group (`subject_to_physical_risk`, `could_be_mapped`) must match overall sum.
+
+---
+
+#### **TC10: Validate filtering logic for "No" risk**
+- **Description**: Confirm filtering of "No" physical risk works as expected.
+- **Validation Steps**:
+  - Count distinct `ctpt_id` where `subject_to_physical_risk == 'No'` should match manually filtered data.
+
+---
+
+If you need **PySpark validation code snippets** for any of these test cases, just say the test case number (e.g., “TC4 code”). Would you like to start with that?
 ```
 
 
