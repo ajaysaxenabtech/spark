@@ -61,7 +61,39 @@ To wrap text inside a Python code cell in Jupyter Notebook (on JupyterHub), you 
 
 ---
 
+```python
 
+from pyspark.sql import SparkSession
+import pandas as pd
+
+spark = SparkSession.builder \
+    .master("yarn") \
+    .appName("FLD_Analysis_aj") \
+    .enableHiveSupport() \
+    .config("spark.dynamicAllocation.enabled", "true") \
+    .config("spark.shuffle.service.enabled", "true") \
+    .config("spark.dynamicAllocation.minExecutors", "1") \
+    .config("spark.dynamicAllocation.maxExecutors", "30") \
+    .config("spark.dynamicAllocation.executorIdleTimeout", "60s") \
+    .config("spark.executor.cores", "5") \
+    .config("spark.executor.memory", "10g") \
+    .config("spark.yarn.executor.memoryOverhead", "2g") \
+    .config("spark.driver.cores", "5") \
+    .config("spark.driver.memory", "10g") \
+    .config("spark.memory.fraction", "0.6") \
+    .config("spark.memory.storageFraction", "0.5") \
+    .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
+    .config("spark.sql.autoBroadcastJoinThreshold", "50MB") \
+    .config("spark.speculation", "true") \
+    .config("spark.yarn.maxAppAttempts", "5") \
+    .config("spark.yarn.queue", "root.root.ESGP1") \
+    .getOrCreate()
+
+print("✅ Spark session initialized.")
+
+pd.set_option('display.max_columns', None)
+
+```
 
 ---
 
