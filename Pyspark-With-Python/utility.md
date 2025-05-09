@@ -96,7 +96,49 @@ pd.set_option('display.max_columns', None)
 ```
 
 ---
+```python
 
+from pyspark.sql import SparkSession
+import pandas as pd
+
+# Create optimized Spark session
+try:
+    spark = SparkSession.builder \
+        .master("yarn") \
+        .appName("FLD_Analysis_aj_optimized") \
+        .enableHiveSupport() \
+        .config("spark.sql.shuffle.partitions", "800") \   # Increase partitions for better parallelism
+        .config("spark.default.parallelism", "800") \
+        .config("spark.executor.instances", "70") \        # Fixed instead of dynamic if cluster size is stable
+        .config("spark.executor.memory", "16g") \          # Increase executor memory
+        .config("spark.executor.cores", "5") \             # More cores per executor
+        .config("spark.driver.memory", "20g") \            # Increase driver memory
+        .config("spark.driver.cores", "4") \
+        .config("spark.memory.fraction", "0.8") \          # More memory for execution (less for caching)
+        .config("spark.memory.storageFraction", "0.3") \   # Limit storage to allow more execution
+        .config("spark.sql.autoBroadcastJoinThreshold", "-1") \  # Disable auto-broadcast to avoid memory issues
+        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
+        .config("spark.kryoserializer.buffer.max", "2047m") \   # Max buffer size for Kryo
+        .config("spark.yarn.executor.memoryOverhead", "4g") \   # Increase memory overhead for GC/Shuffle
+        .config("spark.shuffle.service.enabled", "true") \
+        .config("spark.sql.adaptive.enabled", "true") \         # Enable AQE for dynamic optimization
+        .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
+        .config("spark.sql.adaptive.skewJoin.enabled", "true") \
+        .config("spark.yarn.maxAppAttempts", "2") \
+        .config("spark.yarn.queue", "default") \
+        .getOrCreate()
+        
+except Exception as e:
+    print(e)
+else:
+    print("✅ Spark session initialized (Optimized for large data).")
+
+pd.set_option('display.max_columns', None)
+
+```
+
+
+---
 
 
 
