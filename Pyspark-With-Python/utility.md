@@ -73,9 +73,9 @@ spark = SparkSession.builder \
     .config("spark.dynamicAllocation.enabled", "true") \
     .config("spark.shuffle.service.enabled", "true") \
     .config("spark.dynamicAllocation.minExecutors", "1") \
-    .config("spark.dynamicAllocation.maxExecutors", "30") \
+    .config("spark.dynamicAllocation.maxExecutors", "70") \
     .config("spark.dynamicAllocation.executorIdleTimeout", "60s") \
-    .config("spark.executor.cores", "5") \
+    .config("spark.executor.cores", "4") \
     .config("spark.executor.memory", "10g") \
     .config("spark.yarn.executor.memoryOverhead", "2g") \
     .config("spark.driver.cores", "5") \
@@ -83,19 +83,17 @@ spark = SparkSession.builder \
     .config("spark.memory.fraction", "0.6") \
     .config("spark.memory.storageFraction", "0.5") \
     .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
-    .config("spark.sql.autoBroadcastJoinThreshold", "50MB") \
+    .config("spark.sql.autoBroadcastJoinThreshold", "104857600") \
     .config("spark.speculation", "true") \
     .config("spark.yarn.maxAppAttempts", "5") \
-    .config("spark.yarn.queue", "root.root.ESGP1") \
-    .config("spark.sql.shuffle.partitions", "300") \ 
+    .config("spark.yarn.queue", "default") \
+    # 🔽 AQE and shuffle optimization settings
+    .config("spark.sql.shuffle.partitions", "300") \
     .config("spark.sql.adaptive.enabled", "true") \
     .config("spark.sql.adaptive.skewJoin.enabled", "true") \
     .config("spark.sql.adaptive.shuffle.targetPostShuffleInputSize", "64MB") \
     .getOrCreate()
 
-print("✅ Spark session initialized.")
-
-pd.set_option('display.max_columns', None)
 
 ```
 
