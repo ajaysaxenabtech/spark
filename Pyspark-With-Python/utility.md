@@ -68,7 +68,7 @@ import pandas as pd
 
 spark = SparkSession.builder \
     .master("yarn") \
-    .appName("FLD_Analysis_aj") \
+    .appName("aFLD_Analysis") \
     .enableHiveSupport() \
     .config("spark.dynamicAllocation.enabled", "true") \
     .config("spark.shuffle.service.enabled", "true") \
