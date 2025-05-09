@@ -87,6 +87,10 @@ spark = SparkSession.builder \
     .config("spark.speculation", "true") \
     .config("spark.yarn.maxAppAttempts", "5") \
     .config("spark.yarn.queue", "root.root.ESGP1") \
+    .config("spark.sql.shuffle.partitions", "300") \ 
+    .config("spark.sql.adaptive.enabled", "true") \
+    .config("spark.sql.adaptive.skewJoin.enabled", "true") \
+    .config("spark.sql.adaptive.shuffle.targetPostShuffleInputSize", "64MB") \
     .getOrCreate()
 
 print("✅ Spark session initialized.")
