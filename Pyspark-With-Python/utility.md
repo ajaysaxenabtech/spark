@@ -96,63 +96,75 @@ df.show()
 import os
 from pyspark.sql import SparkSession
 
-# Get system resource details
-page_size = os.sysconf("SC_PAGE_SIZE")
-num_pages = os.sysconf("SC_PHYS_PAGES")
-total_memory_bytes = page_size * num_pages
-total_memory_gb = total_memory_bytes / (1024 ** 3)  # Convert to GB
+def get_spark_session(queue: str = "default") -> SparkSession:
+    """
+    Initializes a SparkSession for a given YARN queue with dynamic memory/core configuration.
+    
+    Parameters:
+    -----------
+    queue : str
+        Name of the YARN queue to use (e.g., 'ESGP2', 'default')
+    
+    Returns:
+    --------
+    SparkSession object
+    """
+    # 1. System Resource Detection
+    page_size = os.sysconf("SC_PAGE_SIZE")
+    num_pages = os.sysconf("SC_PHYS_PAGES")
+    total_memory_bytes = page_size * num_pages
+    total_memory_gb = total_memory_bytes / (1024 ** 3)
 
-total_cores = os.cpu_count()
+    total_cores = os.cpu_count()
 
-# Define maximum limits from your YARN cluster (as seen in your error)
-max_cluster_memory_gb = 180  # 184320 MB
+    # 2. Resource Limits
+    max_cluster_memory_gb = 180
+    executor_memory_gb = min(int((total_memory_gb * 0.6) / 2), 80)
+    driver_memory_gb = min(int(total_memory_gb * 0.2), 40)
+    executor_cores = min(int((total_cores * 0.6) / 2), 8)
+    driver_cores = min(int(total_cores * 0.2), 6)
 
-# Safe executor and driver settings based on available hardware
-executor_cores = min(int((total_cores * 0.6) / 2), 8)  # assume 2 executors per node, cap at 8
-driver_cores = min(int(total_cores * 0.2), 6)          # cap at 6
-executor_memory_gb = min(int((total_memory_gb * 0.6) / 2), 80)  # cap at 80 GB per executor
-driver_memory_gb = min(int(total_memory_gb * 0.2), 40)          # cap at 40 GB for driver
+    print(f"\n🔧 Starting Spark session on queue: {queue}")
+    print(f"System RAM: {total_memory_gb:.2f} GB | Total Cores: {total_cores}")
+    print(f"Executor: {executor_memory_gb}g x {executor_cores} cores | Driver: {driver_memory_gb}g x {driver_cores} cores")
 
-preferred_queue = "ESGP2"  # From your cluster usage graph
+    # 3. SparkSession Builder
+    try:
+        spark = SparkSession.builder \
+            .master("yarn") \
+            .appName("aFLD_Analysis") \
+            .enableHiveSupport() \
+            .config("spark.dynamicAllocation.enabled", "true") \
+            .config("spark.shuffle.service.enabled", "true") \
+            .config("spark.dynamicAllocation.minExecutors", "10") \
+            .config("spark.dynamicAllocation.maxExecutors", "200") \
+            .config("spark.dynamicAllocation.executorIdleTimeout", "60s") \
+            .config("spark.executor.cores", str(executor_cores)) \
+            .config("spark.executor.memory", f"{executor_memory_gb}g") \
+            .config("spark.yarn.executor.memoryOverhead", "4g") \
+            .config("spark.driver.cores", str(driver_cores)) \
+            .config("spark.driver.memory", f"{driver_memory_gb}g") \
+            .config("spark.memory.fraction", "0.8") \
+            .config("spark.memory.storageFraction", "0.3") \
+            .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
+            .config("spark.broadcastTimeout", "900") \
+            .config("spark.sql.autoBroadcastJoinThreshold", "-1") \
+            .config("spark.sql.adaptive.enabled", "true") \
+            .config("spark.sql.adaptive.skewJoin.enabled", "true") \
+            .config("spark.sql.adaptive.shuffle.targetPostShuffleInputSize", "128MB") \
+            .config("spark.speculation", "true") \
+            .config("spark.yarn.maxAppAttempts", "3") \
+            .config("spark.yarn.queue", queue) \
+            .config("spark.sql.shuffle.partitions", "800") \
+            .getOrCreate()
 
-# Optional: Debug print
-print(f"System Memory: {total_memory_gb:.2f} GB | Total Cores: {total_cores}")
-print(f"Executor Memory: {executor_memory_gb} GB | Executor Cores: {executor_cores}")
-print(f"Driver Memory: {driver_memory_gb} GB | Driver Cores: {driver_cores}")
+        print(f"✅ Spark session initialized on queue: {queue}")
+        return spark
 
-# Build Spark session
-try:
-    spark = SparkSession.builder \
-        .master("yarn") \
-        .appName("aFLD_Analysis") \
-        .enableHiveSupport() \
-        .config("spark.dynamicAllocation.enabled", "true") \
-        .config("spark.shuffle.service.enabled", "true") \
-        .config("spark.dynamicAllocation.minExecutors", "10") \
-        .config("spark.dynamicAllocation.maxExecutors", "200") \
-        .config("spark.dynamicAllocation.executorIdleTimeout", "60s") \
-        .config("spark.executor.cores", str(executor_cores)) \
-        .config("spark.executor.memory", f"{executor_memory_gb}g") \
-        .config("spark.yarn.executor.memoryOverhead", "4g") \
-        .config("spark.driver.cores", str(driver_cores)) \
-        .config("spark.driver.memory", f"{driver_memory_gb}g") \
-        .config("spark.memory.fraction", "0.8") \
-        .config("spark.memory.storageFraction", "0.3") \
-        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
-        .config("spark.broadcastTimeout", "900") \
-        .config("spark.sql.autoBroadcastJoinThreshold", "-1") \
-        .config("spark.sql.adaptive.enabled", "true") \
-        .config("spark.sql.adaptive.skewJoin.enabled", "true") \
-        .config("spark.sql.adaptive.shuffle.targetPostShuffleInputSize", "128MB") \
-        .config("spark.speculation", "true") \
-        .config("spark.yarn.maxAppAttempts", "3") \
-        .config("spark.yarn.queue", preferred_queue) \
-        .config("spark.sql.shuffle.partitions", "800") \
-        .getOrCreate()
+    except Exception as e:
+        print(f"❌ Failed to initialize Spark session on queue '{queue}': {e}")
+        return None
 
-    print("✅ Spark session initialized successfully.")
-except Exception as e:
-    print("❌ Failed to initialize Spark session:", e)
 
 ```
 
