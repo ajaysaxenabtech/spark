@@ -96,25 +96,31 @@ df.show()
 import os
 from pyspark.sql import SparkSession
 
-# Estimate total physical memory (in GB)
-page_size = os.sysconf("SC_PAGE_SIZE")      # bytes
+# Get system resource details
+page_size = os.sysconf("SC_PAGE_SIZE")
 num_pages = os.sysconf("SC_PHYS_PAGES")
 total_memory_bytes = page_size * num_pages
-total_memory_gb = total_memory_bytes / (1024 ** 3)
+total_memory_gb = total_memory_bytes / (1024 ** 3)  # Convert to GB
 
-# Estimate available cores
 total_cores = os.cpu_count()
 
-# Define executor and driver settings dynamically (reserve some for OS)
-executor_memory_gb = int((total_memory_gb * 0.6) / 2)  # divide by 2 assuming 2 executors per node
-driver_memory_gb = int(total_memory_gb * 0.2)
-executor_cores = int(total_cores * 0.6 / 2)            # assume 2 executors
-driver_cores = int(total_cores * 0.2)
+# Define maximum limits from your YARN cluster (as seen in your error)
+max_cluster_memory_gb = 180  # 184320 MB
 
-# Final queue selection
-preferred_queue = "ESGP2"  # Based on earlier usage graph (0%)
+# Safe executor and driver settings based on available hardware
+executor_cores = min(int((total_cores * 0.6) / 2), 8)  # assume 2 executors per node, cap at 8
+driver_cores = min(int(total_cores * 0.2), 6)          # cap at 6
+executor_memory_gb = min(int((total_memory_gb * 0.6) / 2), 80)  # cap at 80 GB per executor
+driver_memory_gb = min(int(total_memory_gb * 0.2), 40)          # cap at 40 GB for driver
 
-# SparkSession Builder
+preferred_queue = "ESGP2"  # From your cluster usage graph
+
+# Optional: Debug print
+print(f"System Memory: {total_memory_gb:.2f} GB | Total Cores: {total_cores}")
+print(f"Executor Memory: {executor_memory_gb} GB | Executor Cores: {executor_cores}")
+print(f"Driver Memory: {driver_memory_gb} GB | Driver Cores: {driver_cores}")
+
+# Build Spark session
 try:
     spark = SparkSession.builder \
         .master("yarn") \
@@ -144,9 +150,9 @@ try:
         .config("spark.sql.shuffle.partitions", "800") \
         .getOrCreate()
 
-    print("Spark session initialized.")
+    print("✅ Spark session initialized successfully.")
 except Exception as e:
-    print(e)
+    print("❌ Failed to initialize Spark session:", e)
 
 ```
 
