@@ -11,6 +11,9 @@
 ---
 
 ```cmd
-git checkout 1e24c6203d472e5dd62757a78e38f257404d45d4 -- .
+echo "egress_data/*.csv" > .gitignore
+git add .
+git commit -m "Clean history, removed large files"
+
 
 ```
