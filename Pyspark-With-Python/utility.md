@@ -2,20 +2,8 @@
 
 ---
 ```python
+from pyspark.sql.types import DecimalType
 
-import subprocess
-
-cmd = "ps aux --sort=-%cpu | head -n 6"
-
-result = subprocess.run(
-    cmd,
-    shell=True,
-    stdout=subprocess.PIPE,
-    stderr=subprocess.PIPE,
-    universal_newlines=True
-)
-
-print(result.stdout)
-
+decimal_cols = [f.name for f in df.schema.fields if isinstance(f.dataType, DecimalType) and f.dataType.precision == 38 and f.dataType.scale == 9]
 
 ```
