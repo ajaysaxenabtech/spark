@@ -2,25 +2,13 @@
 
 ```
 
-import os, subprocess, shlex
-from pathlib import Path
+# 1. Most Linux distros
+!which java
 
-# 1️⃣  make spark-submit print the full JVM launch command
-os.environ["SPARK_PRINT_LAUNCH_COMMAND"] = "1"
-# tiny JVM so we don’t blow the cgroup
-os.environ["PYSPARK_SUBMIT_ARGS"] = "--conf spark.executor.memory=1g pyspark-shell"
+# 2. Try readlink if the above prints something
+!readlink -f $(which java)
 
-spark_home = os.environ["SPARK_HOME"]
-submit     = Path(spark_home) / "bin" / "spark-submit"
-cmd        = f"{submit} --version"
-
-print("### Running -->", cmd, "\n")
-
-proc = subprocess.run(
-    shlex.split(cmd),
-    stdout=subprocess.PIPE,
-    stderr=subprocess.STDOUT,
-    universal_newlines=True   # ✔ works on Py 3.6
-)
-print(proc.stdout)
+# 3. Common Cloudera / RHEL locations
+!ls -d /usr/java/* 2>/dev/null
+!ls -d /usr/lib/jvm/* 2>/dev/null
 
