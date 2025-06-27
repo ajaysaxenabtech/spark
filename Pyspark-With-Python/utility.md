@@ -2,163 +2,98 @@
 
 ```
 
-# ---------------------------------------------------------------------------
-#  get_spark  –  CDH / Spark-2 bootstrap with auto-Java detection
-# ---------------------------------------------------------------------------
-import os, sys, glob, pathlib, shutil
-from typing import Optional, Dict, List
-from pyspark.sql import SparkSession
+def get_spark(queue: str = None):
+    import os, sys, pandas as pd, numpy as np
+    import logging, time
+    from IPython.display import display, HTML
+    from pyspark.sql import SparkSession
+    from pyspark import SparkContext, SparkConf
 
-# -- helper -----------------------------------------------------------------
-def _find_java_candidates() -> List[str]:
-    """Return a list of plausible JAVA_HOME paths on this node."""
-    cands = set()
+    # Set Pandas display options for notebooks
+    display(HTML("<style>.container{width:100% !important;}</style>"))
+    display(HTML("<style>.CodeMirror {white-space: pre-wrap !important;}</style>"))
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.max_colwidth', 0)
 
-    # 1. what "java" on PATH resolves to
-    java_bin = shutil.which("java")
-    if java_bin:
-        cands.add(str(pathlib.Path(java_bin).resolve().parent.parent))
+    # Set environment variables (customize paths as needed)
+    os.environ.update({
+        "SPARK_HOME": "/opt/cloudera/parcels/CDH/lib/spark",
+        "HADOOP_CONF_DIR": "/etc/hadoop/conf",
+        "PYLIB": "/opt/cloudera/parcels/CDH/lib/spark/python/lib",
+        "PYSPARK_PYTHON": "/opt/python_hsbc/env/esg/versions/3.6.10/bin/python3.6",
+        "PYSPARK_DRIVER_PYTHON": "/opt/python_hsbc/env/esg/versions/3.6.10/bin/python3.6",
+        "SPARK_MAJOR_VERSION": "2",
+        "JAVA_HOME": "/usr/java/zulu8.78.0.20-sa-jdk8.0.412-linux_x64/",
+        "LD_LIBRARY_PATH": "/usr/java/zulu8.78.0.20-sa-jdk8.0.412-linux_x64/lib/amd64/server",
+        "ARROW_LIBHDFS_DIR": "/opt/cloudera/parcels/CDH/lib64",
+        "KRB5CCNAME": f"/tmp/krb5cc_{os.geteuid()}"
+    })
 
-    # 2. common distro & Cloudera locations
-    for pattern in [
-        "/usr/java/*",
-        "/usr/lib/jvm/*",
-        "/usr/java/default",
-    ]:
-        cands.update(glob.glob(pattern))
+    sys.path.insert(0, f"{os.environ['PYLIB']}/py4j-0.10.7-src.zip")
+    sys.path.insert(0, f"{os.environ['SPARK_HOME']}/python/lib/pyspark.zip")
 
-    # keep only ones that contain bin/java
-    good = [
-        p for p in cands
-        if pathlib.Path(p, "bin/java").exists()
-    ]
-    return sorted(good)          # deterministic order
+    # Queue mapping logic
+    if queue is None or queue.lower() == "d":
+        yarn_queue = "default"
+    elif queue == "e1":
+        yarn_queue = "ESGP1"
+    else:
+        yarn_queue = queue
 
+    # Resource detection
+    page_size = os.sysconf("SC_PAGE_SIZE")
+    num_pages = os.sysconf("SC_PHYS_PAGES")
+    total_memory_gb = (page_size * num_pages) / (1024 ** 3)
+    total_cores = os.cpu_count()
 
-def get_spark(
-    # ---------- env ----------
-    set_env: bool = True,
-    java_home: Optional[str] = None,              # auto if None
-    spark_home: str = "/opt/cloudera/parcels/CDH/lib/spark",
-    python_bin: str = "/opt/python_hsbc/env/esg/versions/3.6.10/bin/python3.6",
-    extra_env: Optional[Dict[str, str]] = None,
-    # ---------- YARN queue ----------
-    queue: str = "default",                       # alias "d" handled
-    # ---------- sizing ----------
-    min_executors: int = 1,
-    max_executors: int = 20,
-    executor_mem_gb: int = 4,
-    driver_mem_gb:   int = 4,
-    executor_cores:  int = 2,
-    driver_cores:    int = 2,
-    target_partitions: int = 200,
-    # ---------- security ----------
-    kerberos_principal: Optional[str] = None,
-    kerberos_keytab:   Optional[str] = None,
-):
-    """
-    Start a SparkSession in a JupyterHub container on CDH (Spark 2).
+    # Dynamic resource limits
+    max_cluster_memory_gb = 180
+    executor_memory_gb = min(int(total_memory_gb * 0.6) // 2, 80)
+    driver_memory_gb = min(int(total_memory_gb * 0.2), 40)
+    executor_cores = min((total_cores * 60) // 100 // 2, 8)
+    driver_cores = min((total_cores * 20) // 100, 6)
 
-    *Auto-detects* a Java 8 installation if `java_home` isn’t supplied.
-    """
+    print(f"Executor: {executor_memory_gb}g x {executor_cores} cores | Driver: {driver_memory_gb}g x {driver_cores} cores")
 
-    # 0️⃣  pick JAVA_HOME ----------------------------------------------------
-    if java_home is None:
-        candidates = _find_java_candidates()
-        if not candidates:
-            raise RuntimeError(
-                "Could not locate a JDK (bin/java not found in common paths). "
-                "Pass java_home='…' explicitly or ask ops to install Java 8."
-            )
-        # prefer Zulu/OpenJDK 8 over newer versions
-        java_home = next(
-            (p for p in candidates if "8." in p or "jdk8" in p or "java-1.8" in p),
-            candidates[0]
-        )
-
-    # 1️⃣  ENVIRONMENT ------------------------------------------------------
-    if set_env:
-        base = {
-            "JAVA_HOME":             java_home,
-            "SPARK_HOME":            spark_home,
-            "HADOOP_CONF_DIR":       "/etc/hadoop/conf",
-            "PYSPARK_PYTHON":        python_bin,
-            "PYSPARK_DRIVER_PYTHON": python_bin,
-            "PYSPARK_SUBMIT_ARGS":   "--deploy-mode client pyspark-shell",
-            "SPARK_MAJOR_VERSION":   "2",
-            "LD_LIBRARY_PATH":       f"{java_home}/lib/amd64/server",
-            "KRB5CCNAME":            f"/tmp/krb5cc_{os.geteuid()}",
-        }
-        if extra_env:
-            base.update(extra_env)
-        for k, v in base.items():
-            os.environ.setdefault(k, v)
-
-        # sys.path tweaks
-        pylib = f"{spark_home}/python/lib"
-        for pattern in [f"{pylib}/py4j-*-src.zip", f"{spark_home}/python/lib/pyspark.zip"]:
-            for path in glob.glob(pattern):
-                if path not in sys.path:
-                    sys.path.insert(0, path)
-
-    # verify Java exists
-    if not pathlib.Path(os.environ["JAVA_HOME"], "bin/java").exists():
-        raise RuntimeError(f"JAVA_HOME points at {os.environ['JAVA_HOME']} but bin/java is missing")
-
-    # 2️⃣  BANNER -----------------------------------------------------------
-    print(f"[Spark boot] Java @ {os.environ['JAVA_HOME']}")
-    print(f"[Spark boot] driver={driver_cores}c/{driver_mem_gb}g  "
-          f"executor={executor_cores}c/{executor_mem_gb}g × dyn({min_executors}-{max_executors})")
-
-    yarn_queue = {"d": "default", "e1": "ESGPI"}.get(queue, queue)
-
-    # 3️⃣  BUILDER ----------------------------------------------------------
-    builder = (
-        SparkSession.builder
-        .master("yarn")
-        .appName("JupyterHub_Session")
-        .enableHiveSupport()
-        .config("spark.dynamicAllocation.enabled", "true")
-        .config("spark.shuffle.service.enabled",  "true")
-        .config("spark.dynamicAllocation.minExecutors", min_executors)
-        .config("spark.dynamicAllocation.maxExecutors", max_executors)
-        .config("spark.dynamicAllocation.executorIdleTimeout", "60s")
-        .config("spark.executor.cores", executor_cores)
-        .config("spark.executor.memory", f"{executor_mem_gb}g")
-        .config("spark.executor.memoryOverhead", max(int(executor_mem_gb * 0.10), 2))
-        .config("spark.driver.cores", driver_cores)
-        .config("spark.driver.memory", f"{driver_mem_gb}g")
-        .config("spark.driver.maxResultSize", "2g")
-        .config("spark.sql.shuffle.partitions", target_partitions)
-        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-        .config("spark.kryoserializer.buffer.max", "512m")
-        .config("spark.speculation", "true")
-        .config("spark.yarn.maxAppAttempts", "3")
-        .config("spark.yarn.queue", yarn_queue)
-    )
-
-    if kerberos_principal and kerberos_keytab:
-        builder = (
-            builder
-            .config("spark.yarn.principal", kerberos_principal)
-            .config("spark.yarn.keytab", kerberos_keytab)
-        )
-
-    # 4️⃣  CREATE & RETURN --------------------------------------------------
+    # SparkSession builder
     try:
-        spark = builder.getOrCreate()
-        spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
-        print("[Spark boot] session ready ✅")
+        spark = (
+            SparkSession.builder
+            .master("yarn")
+            .appName("aFLD_Analysis")
+            .enableHiveSupport()
+            .config("spark.dynamicAllocation.enabled", "true")
+            .config("spark.shuffle.service.enabled", "true")
+            .config("spark.dynamicAllocation.minExecutors", "10")
+            .config("spark.dynamicAllocation.maxExecutors", "100")
+            .config("spark.dynamicAllocation.executorIdleTimeout", "60s")
+            .config("spark.executor.cores", executor_cores)
+            .config("spark.executor.memory", f"{executor_memory_gb}g")
+            .config("spark.yarn.executor.memoryOverhead", "4g")
+            .config("spark.driver.cores", driver_cores)
+            .config("spark.driver.memory", f"{driver_memory_gb}g")
+            .config("spark.driver.maxResultSize", "2g")
+            .config("spark.memory.fraction", "0.8")
+            .config("spark.memory.storageFraction", "0.3")
+            .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+            .config("spark.kryoserializer.buffer", "64m")
+            .config("spark.kryoserializer.buffer.max", "512m")
+            .config("spark.broadcastTimeout", "900")
+            .config("spark.sql.autoBroadcastJoinThreshold", "-1")
+            .config("spark.sql.adaptive.enabled", "true")
+            .config("spark.sql.adaptive.skewJoin.enabled", "true")
+            .config("spark.sql.adaptive.shuffle.targetPostShuffleInputSize", "128MB")
+            .config("spark.speculation", "true")
+            .config("spark.yarn.maxAppAttempts", "3")
+            .config("spark.yarn.queue", yarn_queue)
+            .config("spark.sql.shuffle.partitions", "600")
+            .getOrCreate()
+        )
+
+        print("✅ Spark session initialized")
         return spark
+
     except Exception as e:
-        print(f"[Spark boot] ❌ failed: {e}")
+        print(f"❌ Failed to initialize Spark session on queue '{queue}': {e}")
         return None
-
-
-# ---------------------------------------------------------------------------
-# Example usages
-# ---------------------------------------------------------------------------
-# spark = get_spark()                 # auto-detect Java, default queue
-# spark = get_spark(queue="e1")       # send to ESGPI queue
-# spark = get_spark(java_home="/usr/lib/jvm/java-1.8.0")        # manual path
 
