@@ -1,3 +1,5 @@
+
+```
 1012   def functional_check(self, attribute_name, logic):
 +1013       # ── UNIVERSAL GUARD: skip rule if ANY referenced column is missing ──
 +1014       df2_cols = set(self.df2.columns)
