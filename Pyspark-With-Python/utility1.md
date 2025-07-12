@@ -1,131 +1,66 @@
-Below is a **self-contained rewrite** of your entire `functional_check` method. It
+### What we just proved
 
-1. **Drops any earlier guard** you might have scattered inside branches
-2. **Implements one universal guard** at the top
-3. Proceeds to your original logic, untouched, knowing `logic` is now safe
+* The six attributes you still want to test **do have valid logic strings** (your screenshot confirms no `grca_entity_code` inside them).
+* Yet Spark still crashes **inside those rules** with
+  `cannot resolve \`grca\_entity\_code\`\`.
+* That means the failing code path is **not inside the logic string itself** but somewhere later in `functional_check` (or a helper it calls) that **always references `grca_entity_code` when it builds `test_result_df` / `exception_result_df`.**
+
+In other words, even if the rule’s expression is clean, the *post-processing step* that builds the result frames tries to keep the `grca_entity_code` column for context—and that column does not exist in your Pre-Check DataFrame.
+
+---
+
+## Two ways to unblock quickly
+
+| Fix                                                            | Code                                                                                                                                                                                                                                                                                             | Effect                                                                         |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| **A (add a dummy nullable column—fastest, safe)**              | `python\n# run once, just before any Pre-Check validations:\nif self.check_type.lower().startswith(\"pre\"):\n    if \"grca_entity_code\" not in self.df2.columns:\n        from pyspark.sql import functions as F\n        self.df2 = self.df2.withColumn(\"grca_entity_code\", F.lit(None))\n` | All six rules now run; `grca_entity_code` is simply NULL in Pre-Check outputs. |
+| **B (re-write the helper that adds context columns—cleanest)** | Remove every unconditional `column_select.insert( … 'grca_entity_code' … )` or `df.select('grca_entity_code', …)` call **unless** that column is present.                                                                                                                                        | Keeps the DF schema minimal but requires a code search/edit.                   |
+
+The dummy-column (A) takes 3 lines and fixes today’s block; you can roll
+option B later when you refactor.
+
+---
+
+## Where to add fix A
+
+In the same class that owns `df2` (often the constructor or right before the
+Pre-Check loop):
 
 ```python
-import logging
-from pyspark.sql.functions import col, expr, when
-
-# … your existing imports …
-
-# At the top of your file, make sure you have:
-import re
-_COL_RE = re.compile(r"""F\.col\(['"]([^'"]+)['"]\)""")
-
-def _columns_used(expr):
-    if not isinstance(expr, str):
-        return set()
-    return set(_COL_RE.findall(expr))
-
-def _logic_runnable(expr, df_cols):
-    missing = _columns_used(expr) - df_cols
-    return (len(missing) == 0, missing)
-
-
-class YourClass:
-    # … other methods …
-
-    def functional_check(self, attribute_name, logic):
-        """
-        Runs the functional rule (given as a Spark expression string) against df2,
-        returning a tuple (result_dict, validate_dict).
-        """
-
-        # ── UNIVERSAL GUARD: bail out before any Spark use of `logic` ──
-
-        # 1) Non-string logic is an immediate skip
-        if not isinstance(logic, str):
-            logging.warning(
-                "Skipping %s for %s (%s): logic is not a string",
-                attribute_name, self.cda, self.check_type
-            )
-            return {}, {
-                "test_result": {"test": False},
-                "Pass": [],
-                "Fail": [],
-                "Exception": ["<no-logic>"]
-            }
-
-        # 2) Check that every column F.col(...) in the logic exists in df2
-        df2_cols = set(self.df2.columns)
-        runnable, missing = _logic_runnable(logic, df2_cols)
-        if not runnable:
-            logging.warning(
-                "Skipping %s for %s (%s): missing columns %s",
-                attribute_name,
-                self.cda,
-                self.check_type,
-                ", ".join(sorted(missing))
-            )
-            return {}, {
-                "test_result": {"test": False},
-                "Pass": [],
-                "Fail": [],
-                "Exception": list(missing)
-            }
-
-        # ── At this point we know `logic` is a valid string and all its columns exist ──
-
-        # Your original code starts here
-        string_dtype_columns = self.string_type_columns(self.df2)
-        output_df_columns   = self.df2.columns
-
-        if attribute_name in string_dtype_columns and attribute_name in output_df_columns:
-            df = (
-                self.df2
-                    .withColumn(attribute_name, F.trim(col(attribute_name)))
-            )
-        else:
-            df = self.df2
-
-        # add the test column
-        df = df.withColumn(
-            f"{attribute_name}_test",
-            when(expr(logic), 1).otherwise(0)
-        )
-
-        # now build test_result_df / exception_result_df exactly as before
-        test_result_df = df.filter(expr(f"{attribute_name}_test == 1"))
-        column_select = self.unique_column_select()
-        column_select.insert(2, attribute_name)
-        column_select_ordered = sorted(
-            list(set(column_select)),
-            key=lambda x: column_select.index(x)
-        )
-        exception_result_df = df.filter(expr(f"{attribute_name}_test == 0")) \
-                                .select(*column_select_ordered)
-
-        correct_count   = test_result_df.count()
-        incorrect_count = exception_result_df.count()
-        row_count       = df.count()
-
-        result_dict = {
-            "test_result_df": test_result_df,
-            "exception_result_df": exception_result_df,
-            "correct_count": correct_count,
-            "in-correct_count": incorrect_count,
-            "row_count": row_count
-        }
-
-        test_passed = (correct_count == row_count) or (incorrect_count == 0)
-        validate_dict = {
-            "test_result": {"test": test_passed},
-            "Pass": self.get_list_of_values(test_result_df, attribute_name),
-            "Exception": self.get_list_of_values(exception_result_df, attribute_name),
-            "Fail": self.get_list_of_values(exception_result_df, attribute_name)
-                    + self.get_list_of_values(test_result_df, attribute_name)
-        }
-
-        return result_dict, validate_dict
+def validate_pre_checks(self, spark):
+    # --- add the patch here ---
+    if self.check_type.lower() == "pre-check":
+        if "grca_entity_code" not in self.df2.columns:
+            from pyspark.sql import functions as F
+            self.df2 = self.df2.withColumn("grca_entity_code", F.lit(None))
+    # --- original code continues ---
 ```
 
-### What you need to do
+Restart the kernel, rerun Pre-Check:
 
-1. **Delete any earlier guards** you added between line 1024–1037 or inside the string-dtype branch.
-2. Copy-paste the **one** guard block shown above (lines `if not isinstance…` through `return …`) immediately after the `def functional_check` signature (before any other code).
-3. Ensure your helper functions are defined as shown (*no Python 3.9+ generics*).
-4. **Restart** your notebook kernel and rerun the Pre-Check cell.
+```
+INFO  Skipping grca_entity_code rule…        # still skipped (good)
+INFO  Running ausgabe_datum…                 # now executes
+INFO  Running icp_id…                        # executes
+...
+```
 
-You should now see **only** `"Skipping … missing columns …"` or `"Skipping … logic is not a string"` warnings, and **no** Spark errors. Let me know how it behaves!
+And your exception report should show results for the six attributes.
+
+---
+
+### Why this works
+
+* Spark no longer complains because the column now exists (even though it’s NULL).
+* Your validation logic (equality checks, `.isNull()`, etc.) still gives correct “Pass/Fail” outcomes—the column being NULL in Pre-Check usually makes those rules **fail** when they should (or you can adapt the rule to treat Pre-Check differently).
+
+---
+
+## Next steps if you want a cleaner long-term fix
+
+1. Grep the repo for `'grca_entity_code'` inside utilities that build
+   `column_select`.  Add an `if "grca_entity_code" in df.columns:` guard.
+2. Remove the dummy-column patch.
+
+But for now, patch A gets your pipeline running again and validates the six
+attributes as intended.
